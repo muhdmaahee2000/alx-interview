@@ -1,45 +1,40 @@
 #!/usr/bin/python3
-""" reads stdin line by line and computes metrics """
+"""Performs log parsing from stdin"""
+
+import re
 import sys
+counter = 0
+file_size = 0
+statusC_counter = {200: 0, 301: 0, 400: 0,
+                   401: 0, 403: 0, 404: 0, 405: 0, 500: 0}
+
+
+def printCodes(dict, file_s):
+    """Prints the status code and the number of times they appear"""
+    print("File size: {}".format(file_s))
+    for key in sorted(dict.keys()):
+        if statusC_counter[key] != 0:
+            print("{}: {}".format(key, dict[key]))
 
 
 if __name__ == "__main__":
-    status = {"200": 0,
-              "301": 0,
-              "400": 0,
-              "401": 0,
-              "403": 0,
-              "404": 0,
-              "405": 0,
-              "500": 0}
-    count = 1
-    file_size = 0
-
-    def get_line(line):
-        """ parse and grab data"""
-        try:
-            parsed_line = line.split()
-            status_code = parsed_line[-2]
-            if status_code in status.keys():
-                status[status_code] += 1
-            return int(parsed_line[-1])
-        except Exception:
-            return 0
-
-    def print_stats():
-        """print stats"""
-        print("File size: {}".format(file_size))
-        for key in sorted(status.keys()):
-            if status[key]:
-                print("{}: {}".format(key, status[key]))
-
     try:
         for line in sys.stdin:
-            file_size += get_line(line)
-            if count % 10 == 0:
-                print_stats()
-            count += 1
+            split_string = re.split('- |"|"| " " ', str(line))
+            statusC_and_file_s = split_string[-1]
+            if counter != 0 and counter % 10 == 0:
+                printCodes(statusC_counter, file_size)
+            counter = counter + 1
+            try:
+                statusC = int(statusC_and_file_s.split()[0])
+                f_size = int(statusC_and_file_s.split()[1])
+                # print("Status Code {} size {}".format(statusC, f_size))
+                if statusC in statusC_counter:
+                    statusC_counter[statusC] += 1
+                file_size = file_size + f_size
+            except:
+                pass
+        printCodes(statusC_counter, file_size)
     except KeyboardInterrupt:
-        print_stats()
+        printCodes(statusC_counter, file_size)
         raise
-    print_stats()
